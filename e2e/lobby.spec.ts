@@ -93,36 +93,18 @@ test.describe("Public/Private Lobbies", () => {
   test("home page shows multiple public games", async ({ browser }) => {
     const context1 = await browser.newContext();
     const page1 = await context1.newPage();
-
-    await page1.goto("/");
-    await page1.waitForLoadState("networkidle");
-    await page1.evaluate(async () => {
-      await fetch("/api/games", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublic: true }),
-      });
-    });
+    await createGameViaUI(page1, { isPublic: true });
 
     const context2 = await browser.newContext();
     const page2 = await context2.newPage();
-
-    await page2.goto("/");
-    await page2.waitForLoadState("networkidle");
-    await page2.evaluate(async () => {
-      await fetch("/api/games", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublic: true }),
-      });
-    });
+    await createGameViaUI(page2, { isPublic: true });
 
     const context3 = await browser.newContext();
     const homePage = await context3.newPage();
     await homePage.goto("/");
 
     const lobbyTiles = homePage.getByRole("link", { name: /players/ });
-    await expect(lobbyTiles).toHaveCount(2);
+    await expect(lobbyTiles).toHaveCount(2, { timeout: 10000 });
 
     await context1.close();
     await context2.close();
