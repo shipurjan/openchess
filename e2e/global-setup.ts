@@ -2,9 +2,9 @@ import pg from "pg";
 import Redis from "ioredis";
 import { execSync } from "child_process";
 
-const TEST_DB = "chess_test";
-const ADMIN_URL = "postgresql://chess:chess@localhost:5432/postgres";
-const TEST_URL = `postgresql://chess:chess@localhost:5432/${TEST_DB}`;
+const TEST_DB = "openchess_test";
+const ADMIN_URL = "postgresql://openchess:openchess@localhost:5432/postgres";
+const TEST_URL = `postgresql://openchess:openchess@localhost:5432/${TEST_DB}`;
 const REDIS_URL = "redis://localhost:6379";
 
 async function waitForPostgres(maxAttempts = 30) {

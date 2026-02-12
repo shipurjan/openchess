@@ -2,7 +2,7 @@ import pg from "pg";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 
-const TEST_URL = "postgresql://chess:chess@localhost:5432/chess_test";
+const TEST_URL = "postgresql://openchess:openchess@localhost:5432/openchess_test";
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 
 let pool: pg.Pool | null = null;

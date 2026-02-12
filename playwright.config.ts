@@ -16,7 +16,7 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     env: {
-      DATABASE_URL: "postgresql://chess:chess@localhost:5432/chess_test",
+      DATABASE_URL: "postgresql://openchess:openchess@localhost:5432/openchess_test",
       REDIS_URL: "redis://localhost:6379",
       RATE_LIMIT_GAME_CREATE_MAX: "1000",
     },
