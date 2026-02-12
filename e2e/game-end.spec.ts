@@ -4,6 +4,7 @@ import {
   createGameViaUI,
   joinGameViaUI,
   expectPlayingAs,
+  resignGame,
 } from "./helpers/game";
 
 test.beforeEach(async () => {
@@ -42,7 +43,7 @@ test.describe("Game End Detection", () => {
       whitePage.getByRole("button", { name: "Offer draw" }),
     ).toBeVisible();
 
-    await whitePage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(whitePage);
 
     await expectGameOver(whitePage, "Black wins");
 

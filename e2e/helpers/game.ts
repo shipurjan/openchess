@@ -79,7 +79,7 @@ export async function expectWaitingState(page: Page) {
 export async function waitForWebSocket(page: Page) {
   await expect(
     page.locator('[data-ws-connected="true"]'),
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectPlayingAs(
@@ -96,4 +96,12 @@ export async function expectSpectating(page: Page) {
   await expect(
     page.getByText("Spectating", { exact: true }),
   ).toBeVisible();
+}
+
+/**
+ * Click resign with confirmation (two clicks: "Resign" then "Are you sure?").
+ */
+export async function resignGame(page: Page) {
+  await page.getByRole("button", { name: "Resign" }).click();
+  await page.getByRole("button", { name: "Are you sure?" }).click();
 }

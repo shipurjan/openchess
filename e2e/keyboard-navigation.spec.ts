@@ -4,6 +4,7 @@ import {
   createGameViaUI,
   joinGameViaUI,
   expectPlayingAs,
+  resignGame,
 } from "./helpers/game";
 
 test.beforeEach(async () => {
@@ -15,7 +16,7 @@ test.afterAll(async () => {
 });
 
 async function endGameByResign(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "Resign" }).click();
+  await resignGame(page);
   await expect(page.getByText("Game over")).toBeVisible({ timeout: 5000 });
 }
 

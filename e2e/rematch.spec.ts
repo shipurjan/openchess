@@ -5,6 +5,7 @@ import {
   joinGameViaUI,
   expectPlayingAs,
   waitForWebSocket,
+  resignGame,
 } from "./helpers/game";
 
 test.beforeEach(async () => {
@@ -36,7 +37,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(whitePage, "white");
     await expectPlayingAs(blackPage, "black");
 
-    await whitePage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(whitePage);
     await expectGameOver(whitePage, "Black wins");
     await expectGameOver(blackPage, "Black wins");
 
@@ -87,7 +88,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(whitePage, "white");
     await expectPlayingAs(blackPage, "black");
 
-    await whitePage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(whitePage);
     await expectGameOver(whitePage, "Black wins");
     await expectGameOver(blackPage, "Black wins");
 
@@ -113,7 +114,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(whitePage, "black");
     await expectPlayingAs(blackPage, "white");
 
-    await blackPage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(blackPage);
     await expectGameOver(whitePage, "Black wins");
     await expectGameOver(blackPage, "Black wins");
 
@@ -137,7 +138,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(playerBPage, "black");
 
     // Game 1: resign then rematch
-    await playerAPage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(playerAPage);
     await expectGameOver(playerAPage, "Black wins");
     await expectGameOver(playerBPage, "Black wins");
 
@@ -162,7 +163,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(playerBPage, "white");
 
     // Game 2: resign then rematch again
-    await playerBPage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(playerBPage);
     await expectGameOver(playerAPage, "Black wins");
     await expectGameOver(playerBPage, "Black wins");
 
@@ -187,7 +188,7 @@ test.describe("Rematch", () => {
     await expectPlayingAs(playerBPage, "black");
 
     // Game 3: resign — triggers archive with cycled tokens
-    await playerAPage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(playerAPage);
     await expectGameOver(playerAPage, "Black wins");
     await expectGameOver(playerBPage, "Black wins");
 

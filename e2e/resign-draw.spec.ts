@@ -1,7 +1,12 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { cleanDatabase, disconnectDb } from "./helpers/db";
-import { createGameViaUI, joinGameViaUI } from "./helpers/game";
+import {
+  createGameViaUI,
+  joinGameViaUI,
+  expectPlayingAs,
+  resignGame,
+} from "./helpers/game";
 
 test.beforeEach(async () => {
   await cleanDatabase();
@@ -27,12 +32,14 @@ test.describe("Resign", () => {
 
     await whitePage.reload();
     await whitePage.waitForLoadState("networkidle");
+    await expectPlayingAs(whitePage, "white");
+    await expectPlayingAs(blackPage, "black");
 
     await expect(
       whitePage.getByRole("button", { name: "Resign" }),
     ).toBeVisible();
 
-    await whitePage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(whitePage);
 
     await expectGameOver(whitePage, "Black wins");
 
@@ -61,12 +68,14 @@ test.describe("Draw Offer", () => {
 
     await whitePage.reload();
     await whitePage.waitForLoadState("networkidle");
+    await expectPlayingAs(whitePage, "white");
+    await expectPlayingAs(blackPage, "black");
 
     await expect(
       whitePage.getByRole("button", { name: "Offer draw" }),
     ).toBeVisible();
 
-    await whitePage.getByRole("button", { name: "Resign" }).click();
+    await resignGame(whitePage);
 
     await expectGameOver(whitePage, "Black wins");
 
