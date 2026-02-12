@@ -137,7 +137,7 @@ export async function createGameWithMoves(
   options: CreateGameOptions = {},
 ) {
   const r = getRedis();
-  const id = `test-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  const id = crypto.randomUUID();
   const whiteToken = `wtoken-${Math.random().toString(36).slice(2, 11)}`;
   const blackToken = options.withBlackPlayer
     ? `btoken-${Math.random().toString(36).slice(2, 11)}`
