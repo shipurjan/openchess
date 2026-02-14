@@ -12,12 +12,12 @@ services:
       redis:
         condition: service_healthy
   redis:
-    image: redis:8.4.0-alpine3.22
+    image: redis:8.6.0-alpine3.23
     command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -27,13 +27,13 @@ services:
           memory: 128M
           cpus: '0.5'
   db:
-    image: postgres:18.1-alpine3.23
+    image: postgres:18.2-alpine3.23
     environment:
       POSTGRES_USER: openchess
       POSTGRES_PASSWORD: openchess
       POSTGRES_DB: openchess
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U openchess"]
+      test: [ "CMD-SHELL", "pg_isready -U openchess" ]
       interval: 2s
       timeout: 5s
       retries: 10
