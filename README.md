@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# openchess
 
-## Getting Started
+Anonymous real-time chess platform. No accounts, no matchmaking — just share a link and play.
 
-First, run the development server:
+Real-time WebSocket gameplay with server-side validation, configurable time controls, public lobby, spectators, PGN export, and game archival. Self-hostable via Docker.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone git@github.com:shipurjan/openchess.git
+cd openchess
+docker compose up       # builds from source, available at localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+<details>
+<summary><strong>Run from Docker Hub</strong></summary>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `docker-compose.yml`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```yaml
+services:
+  app:
+    image: shipurjan/openchess:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://openchess:openchess@db:5432/openchess
+      - REDIS_URL=redis://redis:6379
+      - HOSTNAME=0.0.0.0
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-## Learn More
+  redis:
+    image: redis:8.6.0-alpine3.23
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
-To learn more about Next.js, take a look at the following resources:
+  db:
+    image: postgres:18.2-alpine3.23
+    environment:
+      POSTGRES_USER: openchess
+      POSTGRES_PASSWORD: openchess
+      POSTGRES_DB: openchess
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openchess"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+volumes:
+  pgdata:
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker compose up
+```
 
-## Deploy on Vercel
+</details>
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+<details>
+<summary><strong>Development setup</strong></summary>
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Requires Node.js 22+, pnpm, and Docker.
+
+```bash
+pnpm install
+pnpm services          # start Postgres + Redis
+pnpm db:migrate        # run database migrations
+pnpm dev               # start dev server at localhost:3000
+```
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start dev server |
+| `pnpm build` | Build for production |
+| `pnpm services` | Start Postgres + Redis |
+| `pnpm services:stop` | Stop services |
+| `pnpm db:migrate` | Run Prisma migrations |
+| `pnpm test` | Run unit tests (Vitest) |
+| `pnpm test:e2e` | Run E2E tests (Playwright) |
+
+</details>
+
+<details>
+<summary><strong>Configuration</strong></summary>
+
+Copy `.env.example` to `.env` for local development. Key variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql://openchess:openchess@localhost:5432/openchess` | PostgreSQL connection |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection |
+| `PORT` | `3000` | Server port |
+| `CORS_ALLOWED_ORIGINS` | _(all in dev)_ | Allowed origins (comma-separated) |
+| `MAX_ACTIVE_GAMES_PER_IP` | `5` | Concurrent games per IP |
+
+See `.env.example` for the full list.
+
+</details>
+
+## Architecture
+
+```
+Browser ←→ WebSocket ←→ server.ts ←→ Redis (live games)
+                            ↓
+                        PostgreSQL (archived games)
+```
+
+**Redis** holds all live state (sessions, moves, clocks). Every key has a TTL. A background sweeper cleans orphaned games. **PostgreSQL** stores finished games permanently for the archive and PGN export.
+
+## Tech stack
+
+Next.js (App Router) / TypeScript / Redis (ioredis) / PostgreSQL (Prisma) / chess.js / react-chessboard / WebSocket (ws) / Tailwind CSS
