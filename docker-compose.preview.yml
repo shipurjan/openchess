@@ -1,0 +1,4 @@
+services:
+  app:
+    image: ttl.sh/openchess:1h
+    build: !reset null
