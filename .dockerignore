@@ -3,3 +3,16 @@ node_modules
 .git
 .claude
 docs
+dist-server/
+
+e2e/
+test-results/
+playwright-report/
+*.test.ts
+vitest.config.ts
+playwright.config.ts
+ref/
+
+.env
+.env.*
+!.env.example
