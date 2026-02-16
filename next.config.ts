@@ -10,6 +10,8 @@ function getGitCommit(): string {
 }
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
   env: {
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_VERSION: process.env.npm_package_version ?? "0.0.0",
