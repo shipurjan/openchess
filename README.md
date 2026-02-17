@@ -102,7 +102,13 @@ Copy `.env.example` to `.env` for local development. Key variables:
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection |
 | `PORT` | `3000` | Server port |
 | `CORS_ALLOWED_ORIGINS` | _(all in dev)_ | Allowed origins (comma-separated) |
+| `LOG_LEVEL` | `debug` / `info` | Min log level (`debug`, `info`, `warn`, `error`) |
 | `MAX_ACTIVE_GAMES_PER_IP` | `5` | Concurrent games per IP |
+| `ABANDONMENT_TIMEOUT_SECONDS` | `300` | Seconds before a disconnected game is abandoned |
+| `CLAIM_WIN_TIMEOUT_SECONDS` | `60` | Seconds before opponent can claim win on disconnect |
+| `RATE_LIMIT_GAME_CREATE_MAX` | `10` | Max game creation requests per window |
+| `RATE_LIMIT_WS_CONNECT_MAX` | `30` | Max WebSocket connections per window |
+| `SWEEP_INTERVAL_MS` | `300000` | Background cleanup interval (ms) |
 
 See `.env.example` for the full list.
 
