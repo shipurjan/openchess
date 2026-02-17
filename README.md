@@ -13,7 +13,7 @@ docker compose up       # builds from source, available at localhost:3000
 ```
 
 <details>
-<summary><strong>Run from Docker Hub</strong></summary>
+<summary><strong>Run from Docker Hub (recommended)</strong></summary>
 
 Create a `docker-compose.yml`:
 
