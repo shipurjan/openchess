@@ -123,6 +123,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Push release commit
+        run: git push origin HEAD --tags
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,6 +142,3 @@ jobs:
           $GENERATED
           EOF
           )"
-
-      - name: Push release commit
-        run: git push origin HEAD --tags
