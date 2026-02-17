@@ -359,8 +359,9 @@ export async function joinGame(
 
     if swapColors == '1' then
       local creatorToken = redis.call('HGET', seatsKey, 'whiteToken')
+      local creatorConnected = redis.call('HGET', seatsKey, 'whiteConnected') or '0'
       redis.call('HSET', seatsKey, 'whiteToken', joinerToken, 'whiteConnected', '1')
-      redis.call('HSET', seatsKey, 'blackToken', creatorToken, 'blackConnected', '0')
+      redis.call('HSET', seatsKey, 'blackToken', creatorToken, 'blackConnected', creatorConnected)
     else
       redis.call('HSET', seatsKey, 'blackToken', joinerToken, 'blackConnected', '1')
     end

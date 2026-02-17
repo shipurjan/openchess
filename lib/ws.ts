@@ -379,7 +379,23 @@ export function setupWebSocketServer(server: Server) {
     });
   });
 
-  gameEvents.on("game_updated", (gameId: string, status: string) => {
+  gameEvents.on("game_updated", async (gameId: string, status: string) => {
+    const room = rooms.get(gameId);
+    if (room) {
+      const game = await session.getGame(gameId);
+      if (game) {
+        for (const client of room) {
+          const data = clientData.get(client);
+          if (data?.token) {
+            if (data.token === game.whiteToken) {
+              data.playerColor = "white";
+            } else if (data.token === game.blackToken) {
+              data.playerColor = "black";
+            }
+          }
+        }
+      }
+    }
     broadcastAll(gameId, { type: "game_update", status });
   });
 
