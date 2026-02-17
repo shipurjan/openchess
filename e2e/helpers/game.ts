@@ -31,6 +31,7 @@ export interface CreateGameOptions {
   isPublic?: boolean;
   timeInitialMs?: number;
   timeIncrementMs?: number;
+  creatorColor?: "white" | "black" | "random";
 }
 
 export async function createGameViaUI(
@@ -48,6 +49,7 @@ export async function createGameViaUI(
         isPublic: opts.isPublic ?? false,
         timeInitialMs: opts.timeInitialMs,
         timeIncrementMs: opts.timeIncrementMs,
+        creatorColor: opts.creatorColor,
       }),
     });
     if (!res.ok) throw new Error(`Failed to create game: ${res.status}`);
