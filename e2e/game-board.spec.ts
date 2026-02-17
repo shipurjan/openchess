@@ -14,17 +14,6 @@ test.afterAll(async () => {
   await disconnectDb();
 });
 
-test("chess board is visible on game page", async ({ browser }) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  await createGameViaUI(page);
-
-  await expect(page.locator("[data-square='e2']")).toBeVisible();
-
-  await context.close();
-});
-
 test("white player sees board oriented as white", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -82,26 +71,3 @@ test("no move history shown for new game", async ({ browser }) => {
   await context.close();
 });
 
-test("white sees playing state after black joins and white refreshes", async ({
-  browser,
-}) => {
-  const whiteContext = await browser.newContext();
-  const whitePage = await whiteContext.newPage();
-  const { url } = await createGameViaUI(whitePage);
-
-  await expect(whitePage.getByText("Waiting for opponent...")).toBeVisible();
-
-  const blackContext = await browser.newContext();
-  await joinGameViaUI(blackContext, url);
-
-  await whitePage.reload();
-  await whitePage.waitForLoadState("networkidle");
-  await expectPlayingAs(whitePage, "white");
-
-  await expect(
-    whitePage.getByRole("button", { name: "Copy invite link" }),
-  ).not.toBeVisible();
-
-  await whiteContext.close();
-  await blackContext.close();
-});

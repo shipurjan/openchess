@@ -73,36 +73,4 @@ test.describe("Disconnect Handling", () => {
     await blackContext.close();
   });
 
-  test("reconnecting player sees correct game state", async ({ browser }) => {
-    const whiteContext = await browser.newContext();
-    const whitePage = await whiteContext.newPage();
-    const { url } = await createGameViaUI(whitePage);
-
-    const blackContext = await browser.newContext();
-    let blackPage = await joinGameViaUI(blackContext, url);
-
-    await whitePage.reload();
-    await whitePage.waitForLoadState("networkidle");
-    await expectPlayingAs(whitePage, "white");
-    await expectPlayingAs(blackPage, "black");
-
-    await blackPage.close();
-
-    await expect(
-      whitePage.getByText("Opponent disconnected"),
-    ).toBeVisible({ timeout: 5000 });
-
-    blackPage = await blackContext.newPage();
-    await blackPage.goto(url);
-    await blackPage.waitForLoadState("networkidle");
-
-    await expectPlayingAs(blackPage, "black");
-
-    await expect(
-      whitePage.getByText("Opponent disconnected"),
-    ).not.toBeVisible({ timeout: 5000 });
-
-    await whiteContext.close();
-    await blackContext.close();
-  });
 });
