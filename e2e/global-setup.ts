@@ -36,7 +36,9 @@ async function waitForRedis(maxAttempts = 30) {
 }
 
 export default async function globalSetup() {
-  execSync("docker compose up db redis -d --wait", { stdio: "inherit" });
+  if (!process.env.CI) {
+    execSync("docker compose up db redis -d --wait", { stdio: "inherit" });
+  }
   await waitForPostgres();
   await waitForRedis();
 
