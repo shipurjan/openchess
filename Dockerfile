@@ -10,6 +10,7 @@ FROM base AS builder
 WORKDIR /app
 ARG GIT_COMMIT=""
 ENV GIT_COMMIT=$GIT_COMMIT
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm prisma generate
