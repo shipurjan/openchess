@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 
 export default function NewGamePage() {
   const router = useRouter();
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [color, setColor] = useState<"white" | "black" | "random">("random");
   const [minutes, setMinutes] = useState(10);
   const [increment, setIncrement] = useState(0);
