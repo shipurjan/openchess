@@ -15,6 +15,7 @@ interface ClientData {
   token: string | null;
   playerColor: "white" | "black" | null;
   cookies: Map<string, string>;
+  isAlive: boolean;
 }
 
 const rooms = new Map<string, Set<WebSocket>>();
@@ -121,6 +122,22 @@ export function setupWebSocketServer(server: Server) {
     }
   });
 
+  const heartbeatInterval = setInterval(() => {
+    for (const client of wss.clients) {
+      const data = clientData.get(client);
+      if (data && !data.isAlive) {
+        client.terminate();
+        continue;
+      }
+      if (data) data.isAlive = false;
+      client.ping();
+    }
+  }, 30_000);
+
+  wss.on("close", () => {
+    clearInterval(heartbeatInterval);
+  });
+
   wss.on("connection", (ws, req: IncomingMessage) => {
     const cookies = parseCookies(req.headers.cookie);
     clientData.set(ws, {
@@ -128,6 +145,12 @@ export function setupWebSocketServer(server: Server) {
       token: null,
       playerColor: null,
       cookies,
+      isAlive: true,
+    });
+
+    ws.on("pong", () => {
+      const data = clientData.get(ws);
+      if (data) data.isAlive = true;
     });
 
     ws.on("message", async (raw) => {
