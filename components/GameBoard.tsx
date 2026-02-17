@@ -379,10 +379,15 @@ export function GameBoard({
     }
   }
 
-  async function showPgn() {
+  async function prefetchPgn() {
+    if (pgnContent) return;
     const res = await fetch(`/api/games/${gameId}/pgn`);
     const text = await res.text();
     setPgnContent(text);
+  }
+
+  async function showPgn() {
+    if (!pgnContent) await prefetchPgn();
     setPgnModalOpen(true);
   }
 
@@ -1037,6 +1042,7 @@ export function GameBoard({
 
           {(gameStatus === "FINISHED" || gameStatus === "ABANDONED") && (
             <button
+              onMouseEnter={prefetchPgn}
               onClick={showPgn}
               className="mt-3 block w-full cursor-pointer text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
