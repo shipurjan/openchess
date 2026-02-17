@@ -4,6 +4,8 @@ Anonymous real-time chess platform. No accounts, no matchmaking — just share a
 
 Real-time WebSocket gameplay with server-side validation, configurable time controls, public lobby, spectators, PGN export, and game archival. Self-hostable via Docker.
 
+**Docker Hub**: [shipurjan/openchess](https://hub.docker.com/r/shipurjan/openchess)
+
 ## Quick start
 
 ```bash
