@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: "About" };
 export default function AboutPage() {
   const version = process.env.NEXT_PUBLIC_BUILD_VERSION ?? "unknown";
   const commit = process.env.NEXT_PUBLIC_GIT_COMMIT ?? "unknown";
+  const shortCommit = commit !== "unknown" ? commit.slice(0, 7) : "unknown";
 
   return (
     <div className="animate-fade-in mx-auto max-w-3xl px-6 pt-10 pb-12">
@@ -90,12 +91,12 @@ export default function AboutPage() {
                 className="transition-colors hover:text-foreground"
               >
                 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                  {commit}
+                  {shortCommit}
                 </code>
               </a>
             ) : (
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                {commit}
+                {shortCommit}
               </code>
             )}
           </p>

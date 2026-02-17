@@ -3,10 +3,10 @@ import { execSync } from "child_process";
 
 function getGitCommit(): string {
   if (process.env.GIT_COMMIT) {
-    return process.env.GIT_COMMIT.slice(0, 7);
+    return process.env.GIT_COMMIT;
   }
   try {
-    return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+    return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
   } catch {
     return "unknown";
   }
