@@ -100,6 +100,7 @@ import {
   CLAIM_WIN_TIMEOUT_SECONDS,
   setClaimWinTimer,
   claimWin,
+  checkTimeout,
   isValidGameId,
   isValidIP,
   sanitizeIPForRedisKey,
@@ -1067,6 +1068,45 @@ describe("game-session", () => {
         `game:${TEST_GAME_ID}:abandonment`,
         `game:${TEST_GAME_ID}:spectators`,
       );
+    });
+  });
+
+  describe("checkTimeout", () => {
+    it("returns not timed out when lastMoveAt is 0 (before first move)", async () => {
+      mockRedis.hgetall.mockResolvedValueOnce({
+        whiteTimeMs: "5000",
+        blackTimeMs: "5000",
+        lastMoveAt: "0",
+      });
+
+      const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
+      expect(result.timedOut).toBe(false);
+    });
+
+    it("returns timed out when clock has expired", async () => {
+      const lastMoveAt = Date.now() - 6000;
+      mockRedis.hgetall.mockResolvedValueOnce({
+        whiteTimeMs: "5000",
+        blackTimeMs: "5000",
+        lastMoveAt: String(lastMoveAt),
+      });
+
+      const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
+      expect(result.timedOut).toBe(true);
+      expect(result.remainingMs).toBe(0);
+    });
+
+    it("returns not timed out when clock has time remaining", async () => {
+      const lastMoveAt = Date.now() - 2000;
+      mockRedis.hgetall.mockResolvedValueOnce({
+        whiteTimeMs: "5000",
+        blackTimeMs: "5000",
+        lastMoveAt: String(lastMoveAt),
+      });
+
+      const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
+      expect(result.timedOut).toBe(false);
+      expect(result.remainingMs).toBeGreaterThan(0);
     });
   });
 

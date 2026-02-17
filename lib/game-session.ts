@@ -370,7 +370,6 @@ export async function joinGame(
     if timeInitialMs > 0 then
       redis.call('HSET', gameKey, 'whiteTimeMs', tostring(timeInitialMs))
       redis.call('HSET', gameKey, 'blackTimeMs', tostring(timeInitialMs))
-      redis.call('HSET', gameKey, 'lastMoveAt', nowMs)
     end
 
     redis.call('EXPIRE', gameKey, ttl)
@@ -540,11 +539,14 @@ export async function deductTimeAndMove(
     local lastMoveAt = tonumber(redis.call('HGET', gameKey, 'lastMoveAt') or '0')
     local remaining = tonumber(redis.call('HGET', gameKey, timeField) or '0')
 
-    local elapsed = nowMs - lastMoveAt
-    remaining = remaining - elapsed
+    -- First move: clock hasn't started yet, skip deduction
+    if lastMoveAt > 0 then
+      local elapsed = nowMs - lastMoveAt
+      remaining = remaining - elapsed
 
-    if remaining <= 0 then
-      return {0, 0, 1, moverColor}
+      if remaining <= 0 then
+        return {0, 0, 1, moverColor}
+      end
     end
 
     remaining = remaining + incrementMs
@@ -594,10 +596,13 @@ export async function checkTimeout(
   const data = await redis.hgetall(gameKey(gameId));
   if (!data || !data.lastMoveAt) return { timedOut: false, remainingMs: 0 };
 
+  const lastMoveAt = parseInt(data.lastMoveAt, 10);
+  // Clock hasn't started yet (no moves made)
+  if (lastMoveAt === 0) return { timedOut: false, remainingMs: 0 };
+
   const timeField =
     activeColor === "white" ? "whiteTimeMs" : "blackTimeMs";
   const remaining = parseInt(data[timeField] || "0", 10);
-  const lastMoveAt = parseInt(data.lastMoveAt, 10);
   const elapsed = nowMs - lastMoveAt;
   const currentRemaining = remaining - elapsed;
 
@@ -972,7 +977,7 @@ export async function createRematchGame(
     timeIncrementMs: String(timeIncrementMs),
     whiteTimeMs: String(timeInitialMs),
     blackTimeMs: String(timeInitialMs),
-    lastMoveAt: timeInitialMs > 0 ? String(now) : "0",
+    lastMoveAt: "0",
   };
 
   const seats: Record<string, string> = {
