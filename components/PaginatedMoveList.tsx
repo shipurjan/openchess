@@ -18,16 +18,16 @@ export function PaginatedMoveList({
   reviewMoveIndex,
   onMoveClick,
 }: PaginatedMoveListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isReviewMode) {
-      bottomRef.current?.scrollIntoView({ block: "nearest" });
+    if (!isReviewMode && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [movePairs.length, isReviewMode]);
 
   return (
-    <div className="max-h-64 overflow-y-auto text-sm" data-testid="move-list">
+    <div ref={containerRef} className="max-h-64 overflow-y-auto text-sm" data-testid="move-list">
       {movePairs.length === 0 && (
         <p className="text-muted-foreground">No moves yet</p>
       )}
@@ -79,7 +79,6 @@ export function PaginatedMoveList({
           </div>
         );
       })}
-      <div ref={bottomRef} />
     </div>
   );
 }
