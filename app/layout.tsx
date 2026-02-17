@@ -21,9 +21,25 @@ const dmSerif = DM_Serif_Display({
   weight: ["400"],
 });
 
+const description = "Anonymous real-time chess. Share a link and play.";
+
 export const metadata: Metadata = {
-  title: "OpenChess",
-  description: "Anonymous real-time chess. Share a link and play.",
+  title: { default: "OpenChess", template: "%s — OpenChess" },
+  description,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL ?? "https://openchess.app",
+  ),
+  openGraph: {
+    title: "OpenChess",
+    description,
+    siteName: "OpenChess",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OpenChess",
+    description,
+  },
 };
 
 export default function RootLayout({
