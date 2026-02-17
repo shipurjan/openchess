@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { execSync } from "child_process";
 
 function getGitCommit(): string {
+  if (process.env.GIT_COMMIT) {
+    return process.env.GIT_COMMIT.slice(0, 7);
+  }
   try {
     return execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
   } catch {
