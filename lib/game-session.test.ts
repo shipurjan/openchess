@@ -1002,6 +1002,37 @@ describe("game-session", () => {
         }),
       });
     });
+
+    it("handles concurrent archive race (P2002 unique constraint)", async () => {
+      mockRedis.hgetall
+        .mockResolvedValueOnce({
+          status: "FINISHED",
+          currentFen: "fen1",
+          result: "WHITE_WINS",
+          isPublic: "0",
+          createdAt: "1704067200000",
+        })
+        .mockResolvedValueOnce({
+          whiteToken: TEST_WHITE_TOKEN,
+          whiteConnected: "0",
+          blackToken: TEST_BLACK_TOKEN,
+          blackConnected: "0",
+        });
+      mockRedis.lrange.mockResolvedValueOnce([]);
+      mockPrisma.game.findUnique.mockResolvedValueOnce(null);
+
+      // Simulate P2002: another call archived the game between findUnique and create
+      const p2002Error = new Error("Unique constraint failed on the fields: (`id`)");
+      Object.assign(p2002Error, {
+        code: "P2002",
+        meta: { target: ["id"] },
+        clientVersion: "7.4.0",
+      });
+      mockPrisma.game.create.mockRejectedValueOnce(p2002Error);
+
+      // Should not throw — the game was already archived by the other call
+      await expect(archiveGame(FINISHED_GAME_ID)).resolves.toBeUndefined();
+    });
   });
 
   describe("archiveAndDeleteGame", () => {

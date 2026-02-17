@@ -1006,31 +1006,44 @@ export async function archiveGame(gameId: string): Promise<void> {
   });
   if (existing) return;
 
-  await prisma.game.create({
-    data: {
-      id: gameId,
-      status: game.status,
-      result: game.result as
-        | "WHITE_WINS"
-        | "BLACK_WINS"
-        | "DRAW"
-        | undefined,
-      whiteToken: game.whiteToken,
-      blackToken: game.blackToken,
-      isPublic: game.isPublic,
-      timeInitialMs: game.timeInitialMs,
-      timeIncrementMs: game.timeIncrementMs,
-      createdAt: new Date(game.createdAt),
-      moves: {
-        create: moves.map((m) => ({
-          moveNumber: m.moveNumber,
-          notation: m.notation,
-          fen: m.fen,
-          createdAt: new Date(m.createdAt),
-        })),
+  try {
+    await prisma.game.create({
+      data: {
+        id: gameId,
+        status: game.status,
+        result: game.result as
+          | "WHITE_WINS"
+          | "BLACK_WINS"
+          | "DRAW"
+          | undefined,
+        whiteToken: game.whiteToken,
+        blackToken: game.blackToken,
+        isPublic: game.isPublic,
+        timeInitialMs: game.timeInitialMs,
+        timeIncrementMs: game.timeIncrementMs,
+        createdAt: new Date(game.createdAt),
+        moves: {
+          create: moves.map((m) => ({
+            moveNumber: m.moveNumber,
+            notation: m.notation,
+            fen: m.fen,
+            createdAt: new Date(m.createdAt),
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (error: unknown) {
+    // P2002 = unique constraint violation — another concurrent call already
+    // archived this game (TOCTOU race between findUnique and create)
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function archiveAndDeleteGame(
