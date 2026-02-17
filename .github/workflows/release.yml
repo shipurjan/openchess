@@ -126,4 +126,16 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+          VERSION: ${{ steps.version.outputs.version }}
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          GENERATED=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="v$VERSION" --jq .body)
+          gh release create "v$VERSION" --notes "$(cat <<EOF
+          Docker image: [\`${DOCKER_USER}/openchess:${VERSION}\`](https://hub.docker.com/layers/${DOCKER_USER}/openchess/${VERSION})
+
+          ---
+
+          $GENERATED
+          EOF
+          )"
