@@ -4,7 +4,6 @@ import {
   createGameViaUI,
   joinGameViaUI,
   expectPlayingAs,
-  waitForWebSocket,
 } from "./helpers/game";
 
 test.beforeEach(async () => {
