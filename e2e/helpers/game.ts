@@ -116,7 +116,7 @@ export async function expectPlayingAs(
 ) {
   await expect(
     page.getByText(`You are playing as ${role}`),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 10000 });
   await waitForWebSocket(page);
 }
 

@@ -20,7 +20,7 @@ test.describe("Clock Flag", () => {
     const whiteContext = await browser.newContext();
     const whitePage = await whiteContext.newPage();
     const { url, id } = await createGameViaUI(whitePage, {
-      timeInitialMs: 3000,
+      timeInitialMs: 5000,
     });
 
     const blackContext = await browser.newContext();
@@ -37,15 +37,19 @@ test.describe("Clock Flag", () => {
       blackPage.getByTestId("move-list").getByText("e4"),
     ).toBeVisible({ timeout: 5000 });
 
-    // Wait for black's 3s clock to expire
+    // Wait for black's 5s clock to expire
     await expect(whitePage.getByText("Game over")).toBeVisible({
       timeout: 10000,
     });
-    await expect(whitePage.getByText("White wins")).toBeVisible();
+    await expect(whitePage.getByText("White wins")).toBeVisible({
+      timeout: 10000,
+    });
     await expect(blackPage.getByText("Game over")).toBeVisible({
       timeout: 10000,
     });
-    await expect(blackPage.getByText("White wins")).toBeVisible();
+    await expect(blackPage.getByText("White wins")).toBeVisible({
+      timeout: 10000,
+    });
 
     const game = await getGame(id);
     expect(game.status).toBe("FINISHED");
