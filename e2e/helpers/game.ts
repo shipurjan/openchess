@@ -1,6 +1,32 @@
 import type { Page, BrowserContext } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+/**
+ * Make a chess move by simulating pointer-event drag.
+ * react-chessboard uses @dnd-kit (pointer-based), not HTML5 native drag,
+ * so Playwright's built-in dragAndDrop doesn't work.
+ */
+export async function makeMove(page: Page, from: string, to: string) {
+  const fromSquare = page.locator(`[data-square="${from}"]`);
+  const toSquare = page.locator(`[data-square="${to}"]`);
+  const fromBox = await fromSquare.boundingBox();
+  const toBox = await toSquare.boundingBox();
+  if (!fromBox || !toBox) {
+    throw new Error(`Could not get bounding box for squares ${from} -> ${to}`);
+  }
+  await page.mouse.move(
+    fromBox.x + fromBox.width / 2,
+    fromBox.y + fromBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    toBox.x + toBox.width / 2,
+    toBox.y + toBox.height / 2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+}
+
 export interface CreateGameOptions {
   isPublic?: boolean;
   timeInitialMs?: number;
