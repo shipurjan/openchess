@@ -131,6 +131,10 @@ export function GameBoard({
     to: string;
   } | null>(() => getLastMoveSquares(initialMoves));
 
+  // Claim-win state
+  const [claimDeadline, setClaimDeadline] = useState<number | null>(null);
+  const [claimCountdown, setClaimCountdown] = useState<number | null>(null);
+
   // Clock state
   const [timeInitialMs, setTimeInitialMs] = useState(initialTimeInitialMs);
   const [timeIncrementMs, setTimeIncrementMs] = useState(
@@ -236,10 +240,15 @@ export function GameBoard({
       } else if (msg.type === "opponent_connected") {
         if (msg.color !== playerRole) {
           setOpponentConnected(true);
+          setClaimDeadline(null);
+          setClaimCountdown(null);
         }
       } else if (msg.type === "opponent_disconnected") {
         if (msg.color !== playerRole) {
           setOpponentConnected(false);
+          if (msg.claimDeadline) {
+            setClaimDeadline(msg.claimDeadline);
+          }
         }
       } else if (msg.type === "spectator_count") {
         setSpectatorCount(msg.count);
@@ -256,6 +265,12 @@ export function GameBoard({
         setSpectatorCount(msg.spectatorCount);
         if (msg.opponentConnected !== null) {
           setOpponentConnected(msg.opponentConnected);
+        }
+        if (msg.claimDeadline) {
+          setClaimDeadline(msg.claimDeadline);
+        } else {
+          setClaimDeadline(null);
+          setClaimCountdown(null);
         }
         if (msg.timeInitialMs !== undefined) {
           setTimeInitialMs(msg.timeInitialMs);
@@ -298,6 +313,8 @@ export function GameBoard({
       } else if (msg.type === "game_abandoned") {
         setGameStatus("ABANDONED");
         setGameResult(msg.result);
+        setClaimDeadline(null);
+        setClaimCountdown(null);
       } else if (msg.type === "draw_cancelled") {
         setPendingDrawOffer(null);
       } else if (msg.type === "rematch_cancelled") {
@@ -318,6 +335,7 @@ export function GameBoard({
     sendRematchAccept,
     sendRematchCancel,
     sendFlag,
+    sendClaimWin,
     isConnected,
     isConnecting,
     reconnect,
@@ -519,6 +537,23 @@ export function GameBoard({
     }
   }, [gameStatus]);
 
+  // Claim-win countdown
+  useEffect(() => {
+    if (claimDeadline === null) {
+      setClaimCountdown(null);
+      return;
+    }
+
+    const tick = () => {
+      const remaining = Math.ceil((claimDeadline - Date.now()) / 1000);
+      setClaimCountdown(Math.max(0, remaining));
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [claimDeadline]);
+
   // Highlighted squares
   const reviewLastMove = useMemo(() => {
     if (!isReviewMode || reviewMoveIndex === null || reviewMoveIndex === 0)
@@ -713,9 +748,25 @@ export function GameBoard({
               )}
             </p>
             {playerRole !== "spectator" && opponentConnected === false && (
-              <div className="mt-2 flex items-center justify-center gap-2 rounded border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary"></span>
-                Opponent disconnected
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center justify-center gap-2 rounded border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary"></span>
+                  Opponent disconnected
+                  {claimCountdown !== null && claimCountdown > 0 && (
+                    <span>({claimCountdown}s)</span>
+                  )}
+                </div>
+                {claimCountdown !== null && claimCountdown <= 0 && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={sendClaimWin}
+                      size="sm"
+                      className="active:scale-[0.98]"
+                    >
+                      Claim Win
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {playerRole !== "spectator" && (
