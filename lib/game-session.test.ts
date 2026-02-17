@@ -1077,23 +1077,40 @@ describe("game-session", () => {
         whiteTimeMs: "5000",
         blackTimeMs: "5000",
         lastMoveAt: "0",
+        currentFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       });
 
       const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
       expect(result.timedOut).toBe(false);
     });
 
-    it("returns timed out when clock has expired", async () => {
+    it("returns timed out when active player's clock has expired", async () => {
       const lastMoveAt = Date.now() - 6000;
+      // FEN has "b" turn — black's clock is ticking
       mockRedis.hgetall.mockResolvedValueOnce({
         whiteTimeMs: "5000",
         blackTimeMs: "5000",
         lastMoveAt: String(lastMoveAt),
+        currentFen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+      });
+
+      const result = await checkTimeout(TEST_GAME_ID, "black", Date.now());
+      expect(result.timedOut).toBe(true);
+      expect(result.remainingMs).toBe(0);
+    });
+
+    it("returns not timed out when it is not the checked player's turn", async () => {
+      const lastMoveAt = Date.now() - 6000;
+      // FEN has "b" turn — black's clock is ticking, not white's
+      mockRedis.hgetall.mockResolvedValueOnce({
+        whiteTimeMs: "5000",
+        blackTimeMs: "5000",
+        lastMoveAt: String(lastMoveAt),
+        currentFen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
       });
 
       const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
-      expect(result.timedOut).toBe(true);
-      expect(result.remainingMs).toBe(0);
+      expect(result.timedOut).toBe(false);
     });
 
     it("returns not timed out when clock has time remaining", async () => {
@@ -1102,9 +1119,10 @@ describe("game-session", () => {
         whiteTimeMs: "5000",
         blackTimeMs: "5000",
         lastMoveAt: String(lastMoveAt),
+        currentFen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
       });
 
-      const result = await checkTimeout(TEST_GAME_ID, "white", Date.now());
+      const result = await checkTimeout(TEST_GAME_ID, "black", Date.now());
       expect(result.timedOut).toBe(false);
       expect(result.remainingMs).toBeGreaterThan(0);
     });

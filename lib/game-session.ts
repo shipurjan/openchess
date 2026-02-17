@@ -600,6 +600,12 @@ export async function checkTimeout(
   // Clock hasn't started yet (no moves made)
   if (lastMoveAt === 0) return { timedOut: false, remainingMs: 0 };
 
+  // Only the player whose turn it is can time out
+  const fen = data.currentFen || "";
+  const turnChar = fen.split(" ")[1];
+  const turnColor = turnChar === "w" ? "white" : "black";
+  if (activeColor !== turnColor) return { timedOut: false, remainingMs: 0 };
+
   const timeField =
     activeColor === "white" ? "whiteTimeMs" : "blackTimeMs";
   const remaining = parseInt(data[timeField] || "0", 10);
