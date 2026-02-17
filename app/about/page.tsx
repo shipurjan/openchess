@@ -67,13 +67,37 @@ export default function AboutPage() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <p>
             <span className="text-secondary-foreground">Version:</span>{" "}
-            {version}
+            {version !== "unknown" ? (
+              <a
+                href={`https://github.com/shipurjan/openchess/releases/tag/v${version}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-foreground"
+              >
+                {version}
+              </a>
+            ) : (
+              version
+            )}
           </p>
           <p>
             <span className="text-secondary-foreground">Commit:</span>{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-              {commit}
-            </code>
+            {commit !== "unknown" ? (
+              <a
+                href={`https://github.com/shipurjan/openchess/tree/${commit}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-foreground"
+              >
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  {commit}
+                </code>
+              </a>
+            ) : (
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                {commit}
+              </code>
+            )}
           </p>
         </div>
       </div>
