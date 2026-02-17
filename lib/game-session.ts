@@ -102,6 +102,11 @@ export const ABANDONMENT_TIMEOUT_SECONDS = parseInt(
   10,
 );
 
+export const CLAIM_WIN_TIMEOUT_SECONDS = parseInt(
+  process.env.CLAIM_WIN_TIMEOUT_SECONDS ?? "60",
+  10,
+);
+
 // Validation
 
 export function isValidGameId(gameId: unknown): gameId is string {
@@ -789,6 +794,119 @@ export async function clearAbandonmentTimer(
   if (!isValidGameId(gameId)) return;
 
   await redis.del(abandonmentKey(gameId));
+}
+
+export async function setClaimWinTimer(
+  gameId: string,
+  disconnectedColor: "white" | "black",
+): Promise<number> {
+  if (!isValidGameId(gameId)) return 0;
+
+  const deadline = Date.now() + CLAIM_WIN_TIMEOUT_SECONDS * 1000;
+  const info: AbandonmentInfo = { disconnectedColor, deadline };
+  await redis.set(
+    abandonmentKey(gameId),
+    JSON.stringify(info),
+    "EX",
+    CLAIM_WIN_TIMEOUT_SECONDS + 60,
+  );
+  return deadline;
+}
+
+export async function claimWin(
+  gameId: string,
+  claimingColor: "white" | "black",
+): Promise<{ success: boolean; result?: "WHITE_WINS" | "BLACK_WINS"; error?: string }> {
+  if (!isValidGameId(gameId)) {
+    return { success: false, error: "Invalid game ID" };
+  }
+
+  const script = `
+    local gameKey = KEYS[1]
+    local seatsKey = KEYS[2]
+    local abandonKey = KEYS[3]
+    local movesKey = KEYS[4]
+    local claimingColor = ARGV[1]
+    local nowMs = tonumber(ARGV[2])
+    local ttlFinished = tonumber(ARGV[3])
+
+    -- Check game exists and is IN_PROGRESS
+    local status = redis.call('HGET', gameKey, 'status')
+    if not status then
+      return {'ERR', 'Game not found'}
+    end
+    if status ~= 'IN_PROGRESS' then
+      return {'ERR', 'Game is not in progress'}
+    end
+
+    -- Check game is timed
+    local timeInitialMs = tonumber(redis.call('HGET', gameKey, 'timeInitialMs') or '0')
+    if timeInitialMs <= 0 then
+      return {'ERR', 'Not a timed game'}
+    end
+
+    -- Check abandonment timer exists
+    local abandonData = redis.call('GET', abandonKey)
+    if not abandonData then
+      return {'ERR', 'No disconnect timer active'}
+    end
+
+    local info = cjson.decode(abandonData)
+    local disconnectedColor = info['disconnectedColor']
+    local deadline = tonumber(info['deadline'])
+
+    -- Check claimer is not the disconnected player
+    if disconnectedColor == claimingColor then
+      return {'ERR', 'You are the disconnected player'}
+    end
+
+    -- Check opponent is still disconnected
+    local connField = disconnectedColor == 'white' and 'whiteConnected' or 'blackConnected'
+    local connected = redis.call('HGET', seatsKey, connField)
+    if connected == '1' then
+      return {'ERR', 'Opponent has reconnected'}
+    end
+
+    -- Check deadline has passed
+    if nowMs < deadline then
+      return {'ERR', 'Deadline has not passed'}
+    end
+
+    -- All checks passed — atomically abandon the game
+    local result = disconnectedColor == 'white' and 'BLACK_WINS' or 'WHITE_WINS'
+    redis.call('HSET', gameKey, 'status', 'ABANDONED', 'result', result)
+    redis.call('DEL', abandonKey)
+
+    -- Refresh TTLs
+    redis.call('EXPIRE', gameKey, ttlFinished)
+    redis.call('EXPIRE', seatsKey, ttlFinished)
+    redis.call('EXPIRE', movesKey, ttlFinished)
+
+    return {'OK', result}
+  `;
+
+  const res = (await redis.eval(
+    script,
+    4,
+    gameKey(gameId),
+    seatsKey(gameId),
+    abandonmentKey(gameId),
+    movesKey(gameId),
+    claimingColor,
+    String(Date.now()),
+    String(TTL_FINISHED),
+  )) as [string, string];
+
+  if (res[0] === "ERR") {
+    return { success: false, error: res[1] };
+  }
+
+  const result = res[1] as "WHITE_WINS" | "BLACK_WINS";
+
+  // Archive to Postgres (outside Lua — separate datastore)
+  await archiveGame(gameId);
+
+  return { success: true, result };
 }
 
 export async function checkAndProcessAbandonment(

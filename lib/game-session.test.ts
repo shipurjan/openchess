@@ -97,6 +97,9 @@ import {
   untrackGameForIP,
   MAX_ACTIVE_GAMES_PER_IP,
   ABANDONMENT_TIMEOUT_SECONDS,
+  CLAIM_WIN_TIMEOUT_SECONDS,
+  setClaimWinTimer,
+  claimWin,
   isValidGameId,
   isValidIP,
   sanitizeIPForRedisKey,
@@ -1249,6 +1252,197 @@ describe("game-session", () => {
 
       const result = await getGameStateWithRecovery(TEST_GAME_ID);
       expect(result.hasCorruption).toBe(false);
+    });
+  });
+
+  describe("setClaimWinTimer", () => {
+    it("sets timer with ~60s deadline", async () => {
+      const before = Date.now();
+      const deadline = await setClaimWinTimer(TEST_GAME_ID, "black");
+      const after = Date.now();
+
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        `game:${TEST_GAME_ID}:abandonment`,
+        expect.any(String),
+        "EX",
+        CLAIM_WIN_TIMEOUT_SECONDS + 60,
+      );
+
+      const parsed = JSON.parse(mockRedis.set.mock.calls[0][1]);
+      expect(parsed.disconnectedColor).toBe("black");
+      expect(deadline).toBeGreaterThanOrEqual(
+        before + CLAIM_WIN_TIMEOUT_SECONDS * 1000,
+      );
+      expect(deadline).toBeLessThanOrEqual(
+        after + CLAIM_WIN_TIMEOUT_SECONDS * 1000,
+      );
+    });
+
+    it("returns 0 for invalid game ID", async () => {
+      expect(await setClaimWinTimer("invalid", "white")).toBe(0);
+    });
+  });
+
+  describe("claimWin", () => {
+    it("succeeds when Lua script returns OK", async () => {
+      // Lua script returns success
+      mockRedis.eval.mockResolvedValueOnce(["OK", "WHITE_WINS"]);
+
+      // archiveGame -> getGame + getMoves
+      mockRedis.hgetall
+        .mockResolvedValueOnce({
+          status: "ABANDONED",
+          currentFen: INITIAL_FEN,
+          result: "WHITE_WINS",
+          createdAt: "1704067200000",
+          timeInitialMs: "300000",
+        })
+        .mockResolvedValueOnce({
+          whiteToken: TEST_WHITE_TOKEN,
+          whiteConnected: "1",
+          blackToken: TEST_BLACK_TOKEN,
+          blackConnected: "0",
+        });
+      mockRedis.lrange.mockResolvedValueOnce([]);
+      mockPrisma.game.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.game.create.mockResolvedValueOnce({});
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+
+      expect(result.success).toBe(true);
+      expect(result.result).toBe("WHITE_WINS");
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        4,
+        `game:${TEST_GAME_ID}`,
+        `game:${TEST_GAME_ID}:seats`,
+        `game:${TEST_GAME_ID}:abandonment`,
+        `game:${TEST_GAME_ID}:moves`,
+        "white",
+        expect.any(String),
+        "3600",
+      );
+    });
+
+    it("archives the game after successful claim", async () => {
+      mockRedis.eval.mockResolvedValueOnce(["OK", "BLACK_WINS"]);
+
+      // archiveGame -> getGame + getMoves
+      mockRedis.hgetall
+        .mockResolvedValueOnce({
+          status: "ABANDONED",
+          currentFen: INITIAL_FEN,
+          result: "BLACK_WINS",
+          createdAt: "1704067200000",
+          timeInitialMs: "300000",
+        })
+        .mockResolvedValueOnce({
+          whiteToken: TEST_WHITE_TOKEN,
+          whiteConnected: "0",
+          blackToken: TEST_BLACK_TOKEN,
+          blackConnected: "1",
+        });
+      mockRedis.lrange.mockResolvedValueOnce([]);
+      mockPrisma.game.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.game.create.mockResolvedValueOnce({});
+
+      await claimWin(TEST_GAME_ID, "black");
+
+      expect(mockPrisma.game.create).toHaveBeenCalled();
+    });
+
+    it("fails when game not found", async () => {
+      mockRedis.eval.mockResolvedValueOnce(["ERR", "Game not found"]);
+
+      const result = await claimWin(NONEXISTENT_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Game not found",
+      });
+    });
+
+    it("fails when game is not in progress", async () => {
+      mockRedis.eval.mockResolvedValueOnce([
+        "ERR",
+        "Game is not in progress",
+      ]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Game is not in progress",
+      });
+    });
+
+    it("fails for unlimited game", async () => {
+      mockRedis.eval.mockResolvedValueOnce(["ERR", "Not a timed game"]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Not a timed game",
+      });
+    });
+
+    it("fails when no timer active", async () => {
+      mockRedis.eval.mockResolvedValueOnce([
+        "ERR",
+        "No disconnect timer active",
+      ]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "No disconnect timer active",
+      });
+    });
+
+    it("fails when claimer is the disconnected player", async () => {
+      mockRedis.eval.mockResolvedValueOnce([
+        "ERR",
+        "You are the disconnected player",
+      ]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "You are the disconnected player",
+      });
+    });
+
+    it("fails when opponent has reconnected", async () => {
+      mockRedis.eval.mockResolvedValueOnce([
+        "ERR",
+        "Opponent has reconnected",
+      ]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Opponent has reconnected",
+      });
+    });
+
+    it("fails when deadline has not passed", async () => {
+      mockRedis.eval.mockResolvedValueOnce([
+        "ERR",
+        "Deadline has not passed",
+      ]);
+
+      const result = await claimWin(TEST_GAME_ID, "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Deadline has not passed",
+      });
+    });
+
+    it("fails for invalid game ID", async () => {
+      const result = await claimWin("invalid", "white");
+      expect(result).toEqual({
+        success: false,
+        error: "Invalid game ID",
+      });
+      expect(mockRedis.eval).not.toHaveBeenCalled();
     });
   });
 
