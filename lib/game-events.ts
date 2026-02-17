@@ -7,5 +7,4 @@ const globalForEvents = globalThis as unknown as {
 export const gameEvents =
   globalForEvents.gameEvents ?? new EventEmitter();
 
-if (process.env.NODE_ENV !== "production")
-  globalForEvents.gameEvents = gameEvents;
+globalForEvents.gameEvents = gameEvents;

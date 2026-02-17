@@ -13,6 +13,4 @@ export const redis =
 
 redis.on("error", () => {});
 
-if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis;
-}
+globalForRedis.redis = redis;
