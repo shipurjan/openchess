@@ -5,6 +5,7 @@ import {
   joinGameViaUI,
   getGameCookie,
   expectPlayingAs,
+  waitForWebSocket,
 } from "./helpers/game";
 
 test.beforeEach(async () => {
@@ -77,6 +78,7 @@ test("black player revisiting game page keeps their role", async ({
   await blackPage.goto("/");
   await blackPage.goto(url);
   await blackPage.waitForLoadState("networkidle");
+  await waitForWebSocket(blackPage);
 
   await expectPlayingAs(blackPage, "black");
 

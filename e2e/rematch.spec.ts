@@ -108,6 +108,12 @@ test.describe("Rematch", () => {
       expect(blackPage.url()).toContain("/game/");
     }).toPass({ timeout: 10000 });
 
+    // After SPA navigation via router.push, reload to get a clean page
+    // load with fresh WebSocket connections.
+    await whitePage.reload();
+    await whitePage.waitForLoadState("networkidle");
+    await blackPage.reload();
+    await blackPage.waitForLoadState("networkidle");
     await waitForWebSocket(whitePage);
     await waitForWebSocket(blackPage);
 

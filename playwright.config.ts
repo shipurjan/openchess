@@ -19,6 +19,8 @@ export default defineConfig({
       DATABASE_URL: "postgresql://openchess:openchess@localhost:5432/openchess_test",
       REDIS_URL: "redis://localhost:6379",
       RATE_LIMIT_GAME_CREATE_MAX: "1000",
+      RATE_LIMIT_WS_CONNECT_MAX: "1000",
+      CLAIM_WIN_TIMEOUT_SECONDS: "2",
     },
   },
 });
