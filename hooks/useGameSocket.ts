@@ -78,6 +78,7 @@ export interface OpponentConnectedMessage {
 export interface OpponentDisconnectedMessage {
   type: "opponent_disconnected";
   color: "white" | "black";
+  claimDeadline?: number;
 }
 
 export interface ConnectionStatusMessage {
@@ -110,6 +111,7 @@ export interface GameStateMessage {
   whiteTimeMs?: number;
   blackTimeMs?: number;
   lastMoveAt?: number;
+  claimDeadline?: number;
 }
 
 export interface FlagMessage {
@@ -284,6 +286,13 @@ export function useGameSocket(
     }
   }, []);
 
+  const sendClaimWin = useCallback(() => {
+    // Don't queue — discard if disconnected
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "claim_win" }));
+    }
+  }, []);
+
   const reconnect = useCallback(() => {
     setIsConnected(false);
     if (reconnectTimer.current) {
@@ -310,6 +319,7 @@ export function useGameSocket(
     sendRematchAccept,
     sendRematchCancel,
     sendFlag,
+    sendClaimWin,
     isConnected,
     isConnecting,
     reconnect,

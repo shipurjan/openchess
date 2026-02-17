@@ -17,6 +17,7 @@ const VALID_MESSAGE_TYPES = [
   "rematch_accept",
   "rematch_cancel",
   "flag",
+  "claim_win",
 ] as const;
 
 type MessageType = (typeof VALID_MESSAGE_TYPES)[number];
@@ -43,7 +44,8 @@ export interface SimpleMessage {
     | "rematch_offer"
     | "rematch_accept"
     | "rematch_cancel"
-    | "flag";
+    | "flag"
+    | "claim_win";
 }
 
 export type ValidatedMessage = JoinMessage | MoveMessage | SimpleMessage;
@@ -174,6 +176,7 @@ export function validateMessage(data: unknown): ValidationResult {
     case "rematch_accept":
     case "rematch_cancel":
     case "flag":
+    case "claim_win":
       return { valid: true, message: { type } as SimpleMessage };
 
     default:

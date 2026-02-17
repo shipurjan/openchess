@@ -290,6 +290,19 @@ export function setupWebSocketServer(server: Server) {
             );
           }
           break;
+
+        case "claim_win":
+          if (data.gameId) {
+            await handleClaimWin(ws, data);
+          } else {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Not joined to a game",
+              }),
+            );
+          }
+          break;
       }
     });
 
@@ -332,11 +345,24 @@ export function setupWebSocketServer(server: Server) {
 
         if (game?.status === "IN_PROGRESS") {
           await session.setPlayerConnected(gameId, playerColor, false);
-          broadcastAll(gameId, {
-            type: "opponent_disconnected",
-            color: playerColor,
-          });
-          await session.setAbandonmentTimer(gameId, playerColor);
+
+          if (game.timeInitialMs > 0) {
+            const claimDeadline = await session.setClaimWinTimer(
+              gameId,
+              playerColor,
+            );
+            broadcastAll(gameId, {
+              type: "opponent_disconnected",
+              color: playerColor,
+              claimDeadline,
+            });
+          } else {
+            broadcastAll(gameId, {
+              type: "opponent_disconnected",
+              color: playerColor,
+            });
+            await session.setAbandonmentTimer(gameId, playerColor);
+          }
         }
 
         if (
@@ -476,11 +502,22 @@ async function handleJoin(ws: WebSocket, data: ClientData, gameId: string) {
   }
 
   let opponentConnected: boolean | null = null;
+  let claimDeadline: number | undefined;
   if (data.playerColor && game.status !== "WAITING") {
     const connections = await session.getConnectionStatus(gameId);
     const opponentColor =
       data.playerColor === "white" ? "black" : "white";
     opponentConnected = connections[opponentColor];
+
+    if (!opponentConnected && game.timeInitialMs > 0) {
+      const abandonmentInfo = await session.getAbandonmentInfo(gameId);
+      if (
+        abandonmentInfo &&
+        abandonmentInfo.disconnectedColor === opponentColor
+      ) {
+        claimDeadline = abandonmentInfo.deadline;
+      }
+    }
   }
 
   const spectatorCount = getSpectatorCount(gameId);
@@ -546,6 +583,7 @@ async function handleJoin(ws: WebSocket, data: ClientData, gameId: string) {
       opponentConnected,
       gameStateCorrupted,
       spectatorCount,
+      ...(claimDeadline !== undefined ? { claimDeadline } : {}),
       ...clockData,
     }),
   );
@@ -1142,6 +1180,36 @@ async function handleRematchCancel(ws: WebSocket, data: ClientData) {
 
   await session.clearRematchOffer(gameId);
   broadcastAll(gameId, { type: "rematch_cancelled", by: playerColor });
+}
+
+async function handleClaimWin(ws: WebSocket, data: ClientData) {
+  const gameId = data.gameId!;
+  const playerColor = data.playerColor;
+
+  if (!playerColor) {
+    ws.send(
+      JSON.stringify({
+        type: "error",
+        message: "You are not a player in this game",
+      }),
+    );
+    return;
+  }
+
+  const result = await session.claimWin(gameId, playerColor);
+
+  if (!result.success) {
+    ws.send(
+      JSON.stringify({ type: "error", message: result.error }),
+    );
+    return;
+  }
+
+  broadcastAll(gameId, {
+    type: "game_abandoned",
+    result: result.result,
+    status: "ABANDONED",
+  });
 }
 
 async function handleFlag(ws: WebSocket, data: ClientData) {

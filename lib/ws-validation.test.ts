@@ -195,6 +195,7 @@ describe("validateMessage", () => {
       "rematch_offer",
       "rematch_accept",
       "flag",
+      "claim_win",
     ]) {
       it(`validates ${type}`, () => {
         expect(validateMessage({ type }).valid).toBe(true);
