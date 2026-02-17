@@ -103,7 +103,7 @@ jobs:
           git add package.json
           git commit -m "release: v$VERSION"
           git tag "v$VERSION"
-          git push origin HEAD --tags
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -116,7 +116,7 @@ jobs:
         with:
           context: .
           push: true
-          build-args: GIT_COMMIT=${{ github.sha }}
+          build-args: GIT_COMMIT=${{ steps.version.outputs.sha }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/openchess:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME }}/openchess:latest
@@ -139,3 +139,6 @@ jobs:
           $GENERATED
           EOF
           )"
+
+      - name: Push release commit
+        run: git push origin HEAD --tags
