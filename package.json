@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "docker:preview": "docker build -t ttl.sh/openchess:1h . && docker push ttl.sh/openchess:1h",
-    "docker:run": "docker compose -f docker-compose.yml -f docker-compose.preview.yml up"
+    "docker:run": "docker compose -f docker-compose.yml -f docker-compose.preview.yml up",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.4.0",
