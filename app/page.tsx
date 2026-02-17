@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Link2, Swords, Archive } from "lucide-react";
 import { LobbyList } from "@/components/LobbyList";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: { absolute: "OpenChess — Anonymous Real-Time Chess" },
+};
 
 const steps = [
   {

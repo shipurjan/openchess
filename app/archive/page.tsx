@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ArchiveList } from "@/components/ArchiveList";
+
+export const metadata: Metadata = { title: "Archive" };
 
 export default function ArchivePage() {
   return (

@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getGame, getMoves, getPlayerRole } from "@/lib/game-session";
 import { GameBoard } from "@/components/GameBoard";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  return { title: `Game ${id.slice(0, 8)}` };
+}
 
 export default async function GamePage({
   params,
